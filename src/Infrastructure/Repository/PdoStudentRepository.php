@@ -2,6 +2,7 @@
 
 namespace Alura\Pdo\Infrastructure\Repository;
 
+use Alura\Pdo\Domain\Model\Phone;
 use Alura\Pdo\Domain\Model\Student;
 use Alura\Pdo\Domain\Repository\StudentRepository;
 use DateTimeImmutable;
@@ -45,6 +46,26 @@ class PdoStudentRepository implements StudentRepository
 
         return $studentLista;
     }
+
+    // private function fillPhonesOf(Student $student): void
+    // {
+    //     $sqlQuery = "SELECT id, areaCode, number FROM phone WHERE id = :id";
+    //     $statement = $this->connection->prepare($sqlQuery);
+    //     $statement->bindValue(':id', $student->id(), PDO::PARAM_INT);
+    //     $statement->execute();
+
+    //     $phoneDataList = $statement->fetchAll();
+    //     foreach ($phoneDataList as $phoneData) {
+    //         $phone = new Phone(
+    //             $phoneData['id'],
+    //             $phoneData['areaCode'],
+    //             $phoneData['number']
+    //         );
+
+    //         $student->addPhone($phone);
+    //     }
+
+    // }
 
     public function save(Student $student): bool
     {
@@ -90,5 +111,23 @@ class PdoStudentRepository implements StudentRepository
         $statement->bindValue(':id', $student->id(), PDO::PARAM_INT);
 
         return $statement->execute();
+    }
+
+    public function studentWithPhones(): array
+    {
+        $sqlQuery = "SELECT students.id, students.name, students.birthDate, phone.id AS phoneId, phone.areaCode, phone.number FROM students JOIN phone ON students.id = phone.studentId;";
+        $statement = $this->connection->query($sqlQuery);
+        $result = $statement->fetchAll();
+        $studentList = [];
+
+        foreach ($result as $row) {
+            if (!array_key_exists($row['id'], $studentList)) { 
+                $studentList[$row['id']] = new Student($row['id'], $row['name'], new DateTimeImmutable($row['birthDate']));  
+            }
+            $phone = new Phone($row['id'], $row['areaCode'], $row['number']);
+            $studentList[$row['id']]->addPhone($phone);
+        }
+
+        return $studentList;
     }
 }
